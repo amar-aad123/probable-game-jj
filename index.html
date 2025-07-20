@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  meta name="title" content="لعبة Pong ثنائية اللاعبين - HTML5">
+  <meta name="description" content="استمتع بلعبة Pong الكلاسيكية ثنائية اللاعبين المبنية بـ HTML وJavaScript. مناسبة لجميع الأعمار وتعمل مباشرة في المتصفح.">
+
+  <!-- كلمات مفتاحية (ليست مؤثرة كثيراً لكن لا بأس بها) -->
+  <meta name="keywords" content="لعبة Pong, ألعاب HTML, لعبتين, لعبة متصفح, لعبة بدون تحميل, pong html">
+
+  <!-- المؤلف -->
+  <meta name="author" content="اسمك أو معرف GitHub">
+
+  <!-- مشاركة على وسائل التواصل -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://amar-aad123.github.io/pong-game/">
+  <meta property="og:title" content="لعبة Pong ثنائية اللاعبين - HTML5">
+  <meta property="og:description" content="استمتع بلعبة Pong الكلاسيكية ثنائية اللاعبين تعمل في المتصفح بدون تحميل.">
+  <meta property="og:image" content="https://yourdomain.com/pong-thumbnail.png"> <!-- صورة مصغرة إن توفرت -->
+
+  <!-- تويتر -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="لعبة Pong ثنائية اللاعبين - HTML5">
+  <meta name="twitter:description" content="جرب لعبة Pong ثنائية اللاعبين في متصفحك الآن!">
+  <meta name="twitter:image" content="https://yourdomain.com/pong-thumbnail.png">
+  <title>لعبة الكرة المرتدة - لاعبين</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(to bottom, #0059ff, #ff0000);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    canvas {
+      background: rgba(0, 0, 0, 0.3);
+      border: 3px solid #00ff1a;
+      box-shadow: 0 0 20px #0004ff;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="800" height="500"></canvas>
+<audio id="hitSound" src="https://cdn.pixabay.com/download/audio/2022/03/26/audio_60e97b7385.mp3?filename=hit-3-7056.mp3" preload="auto"></audio>
+
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+  const hitSound = document.getElementById("hitSound");
+
+  const paddleWidth = 10, paddleHeight = 150, ballSize = 10;
+  const player1 = { x: 10, y: canvas.height / 2 - paddleHeight / 2, dy: 0, score: 0 };
+  const player2 = { x: canvas.width - 20, y: canvas.height / 2 - paddleHeight / 2, dy: 0, score: 0 };
+  let ball = {
+    x: canvas.width / 2, y: canvas.height / 2,
+    dx: 8 * (Math.random() > 0.5 ? 1 : -1),
+    dy: 8 * (Math.random() > 0.5 ? 1 : -1)
+  };
+
+  const WIN_SCORE = 10;
+  let gameOver = false;
+
+  function drawRect(x, y, w, h, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w, h);
+  }
+
+  function drawBall() {
+    ctx.fillStyle = "red";
+    ctx.fillRect(ball.x, ball.y, ballSize, ballSize);
+  }
+
+  function drawScores() {
+    ctx.font = "18px Arial";
+    ctx.fillStyle = "green";
+    ctx.fillText(`Player 1 (W/S): ${player1.score}`, 50, 30);
+    ctx.fillText(`Player 2 (↑/↓): ${player2.score}`, canvas.width - 200, 30);
+  }
+
+  function drawWin(winner) {
+    ctx.fillStyle = "#green";
+    ctx.font = "32px Arial";
+    ctx.fillText(`${winner} Wins!`, canvas.width / 2 - 100, canvas.height / 2);
+  }
+
+  function resetBall() {
+    ball.x = canvas.width / 2;
+    ball.y = canvas.height / 2;
+    ball.dx = 8 * (Math.random() > 0.5 ? 1 : -1);
+    ball.dy = 8 * (Math.random() > 0.5 ? 1 : -1);
+  }
+
+  function moveBall() {
+    if (gameOver) return;
+
+    ball.x += ball.dx;
+    ball.y += ball.dy;
+
+    // Wall bounce
+    if (ball.y <= 0 || ball.y + ballSize >= canvas.height) {
+      ball.dy *= -1;
+      hitSound.play();
+    }
+
+    // Paddle collision
+    if (
+      ball.x <= player1.x + paddleWidth &&
+      ball.y + ballSize >= player1.y &&
+      ball.y < player1.y + paddleHeight
+    ) {
+      ball.dx *= -1;
+      hitSound.play();
+    }
+
+    if (
+      ball.x + ballSize > player2.x &&
+      ball.y + ballSize > player2.y &&
+      ball.y < player2.y + paddleHeight
+    ) {
+      ball.dx *= -1;
+      hitSound.play();
+    }
+
+    // Scoring
+    if (ball.x <= 0) {
+      player2.score++;
+      hitSound.play();
+      checkWinner();
+      resetBall();
+    } else if (ball.x + ballSize >= canvas.width) {
+      player1.score++;
+      hitSound.play();
+      checkWinner();
+      resetBall();
+    }
+  }
+
+  function checkWinner() {
+    if (player1.score >= WIN_SCORE || player2.score >= WIN_SCORE) {
+      gameOver = true;
+      setTimeout(() => {
+        player1.score = 0;
+        player2.score = 0;
+        gameOver = false;
+        resetBall();
+      }, 3000);
+    }
+  }
+
+  function movePaddles() {
+    player1.y += player1.dy;
+    player2.y += player2.dy;
+
+    // Limit movement inside canvas
+    player1.y = Math.max(0, Math.min(canvas.height - paddleHeight, player1.y));
+    player2.y = Math.max(0, Math.min(canvas.height - paddleHeight, player2.y));
+  }
+
+  function update() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    movePaddles();
+    moveBall();
+
+    drawRect(player1.x, player1.y, paddleWidth, paddleHeight, "#fff");
+    drawRect(player2.x, player2.y, paddleWidth, paddleHeight, "#fff");
+    drawBall();
+    drawScores();
+
+    if (gameOver) {
+      let winner = player1.score >= WIN_SCORE ? "Player 1" : "Player 2";
+      drawWin(winner);
+    }
+
+    requestAnimationFrame(update);
+  }
+
+  // Controls
+  document.addEventListener("keydown", (e) => {
+    const key = e.key.toLowerCase();
+    if (key === "q") player1.dy = -8;
+    if (key === "a") player1.dy = 8;
+    if (e.key === "o") player2.dy = -8;
+    if (e.key === "l") player2.dy = 8;
+  });
+
+  document.addEventListener("keyup", (e) => {
+    const key = e.key.toLowerCase();
+    if (["w", "s"].includes(key)) player1.dy = 0;
+    if (["ArrowUp", "ArrowDown"].includes(e.key)) player2.dy = 0;
+  });
+
+  update();
+</script>
+
+</body>
+</html>
